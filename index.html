@@ -1,0 +1,461 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Where Measurement Error Decides the Trial</title>
+<style>
+  :root{
+    --bg:#FBFAF8; --ink:#1A2332; --mid:#49566B; --soft:#6E7A8A;
+    --line:#DCDDD8; --card:#FFFFFF;
+    --red:#D52B1E; --green:#2E7D5B; --amber:#E8A33D; --blue:#5BA3C4; --navy:#22304A;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+  .wrap{max-width:1700px;margin:0 auto;padding:20px 26px 36px}
+  header{border-bottom:3px solid var(--navy);padding-bottom:13px;margin-bottom:18px}
+  h1{font-size:29px;margin:0 0 5px;font-weight:700;letter-spacing:-0.2px}
+  .sub{font-size:16.5px;color:var(--mid);margin:0}
+  .tag{display:inline-block;font-size:12px;font-weight:700;letter-spacing:1.6px;
+    text-transform:uppercase;color:var(--red);margin-bottom:6px}
+  .grid{display:grid;grid-template-columns:400px 1fr;gap:22px;align-items:start}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:17px 19px}
+  .card h2{font-size:13.5px;font-weight:700;letter-spacing:1.3px;text-transform:uppercase;
+    color:var(--navy);margin:0 0 13px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+  .card + .card{margin-top:15px}
+
+  .presets{display:flex;flex-direction:column;gap:7px}
+  button.preset{text-align:left;cursor:pointer;border:1px solid var(--line);background:#F6F4F0;
+    border-radius:9px;padding:10px 12px;font:inherit;font-size:13.5px;line-height:1.35;color:var(--ink)}
+  button.preset:hover{background:#EFEBE4}
+  button.preset.on{border-color:var(--red);border-width:2px;background:#FDF2F0;padding:9px 11px}
+  button.preset b{display:block;font-size:14.5px;margin-bottom:2px}
+  button.preset b i{font-style:normal;color:var(--soft);font-weight:600;font-size:12px}
+  button.preset span{color:var(--mid);font-size:12.5px}
+
+  .modes{display:flex;gap:8px;margin-bottom:13px}
+  .modes button{flex:1;cursor:pointer;border:1px solid var(--line);background:#F6F4F0;border-radius:8px;
+    padding:9px 6px;font:inherit;font-size:13px;font-weight:600;color:var(--mid)}
+  .modes button.on{background:var(--navy);border-color:var(--navy);color:#fff}
+
+  .ctl{margin-bottom:14px}
+  .ctl label{display:flex;justify-content:space-between;align-items:baseline;font-size:13.5px;
+    margin-bottom:4px;gap:8px}
+  .ctl .nm{font-weight:600}
+  .ctl .vl{font-variant-numeric:tabular-nums;font-weight:700;color:var(--navy);font-size:14.5px;white-space:nowrap}
+  input[type=range]{width:100%;margin:0;accent-color:var(--navy)}
+  .cite{font-size:11.5px;color:var(--soft);margin-top:3px;line-height:1.35}
+  .cite.unk{color:var(--red);font-weight:600}
+  .sechead{font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;
+    color:var(--soft);margin:4px 0 9px}
+
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:13px;margin-bottom:16px}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+  .stat .k{font-size:11.5px;font-weight:700;letter-spacing:1.1px;text-transform:uppercase;color:var(--soft)}
+  .stat .v{font-size:35px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.15;margin-top:3px}
+  .stat .n{font-size:12.5px;color:var(--mid);margin-top:3px;line-height:1.3}
+  .stat.hero{background:var(--navy);border-color:var(--navy)}
+  .stat.hero .k{color:#9AA5B4}.stat.hero .v{color:#fff}.stat.hero .n{color:#C3CBD6}
+
+  canvas{display:block;width:100%;height:auto}
+  .legend{display:flex;gap:17px;font-size:12.5px;color:var(--mid);margin-top:9px;flex-wrap:wrap}
+  .legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;vertical-align:-2px}
+
+  table.src{width:100%;border-collapse:collapse;font-size:12.5px}
+  table.src th,table.src td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);
+    vertical-align:top;line-height:1.42}
+  table.src th{font-size:10.5px;letter-spacing:.8px;text-transform:uppercase;color:var(--soft);font-weight:700}
+  table.src td.p{font-weight:600}
+  .flagrow td{background:#FDF2F0}.flagrow td.p{color:var(--red)}
+  .note{font-size:13px;color:var(--mid);line-height:1.5;margin:11px 0 0}
+  .note b{color:var(--ink)}
+  @media(max-width:1100px){.grid{grid-template-columns:1fr}.stats{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <span class="tag">Cardiac amyloidosis &middot; <sup>18</sup>F-florbetapir retention index</span>
+  <h1>Where measurement error decides the trial</h1>
+  <p class="sub">The same imaging measure, two endpoint constructions. Which variance components matter depends entirely on which one you choose.</p>
+</header>
+
+<div class="grid">
+  <div>
+    <div class="card">
+      <h2>Demo sequence</h2>
+      <div class="presets" id="presets"></div>
+    </div>
+
+    <div class="card">
+      <h2>Endpoint construction</h2>
+      <div class="modes" id="modes">
+        <button data-mode="change" class="on">Within-patient change</button>
+        <button data-mode="absolute">Diagnostic threshold</button>
+      </div>
+      <p class="note" id="modeNote"></p>
+    </div>
+
+    <div class="card">
+      <h2>Parameters</h2>
+      <div id="controls"></div>
+    </div>
+  </div>
+
+  <div>
+    <div class="stats" id="stats"></div>
+
+    <div class="card">
+      <h2 id="distTitle"></h2>
+      <canvas id="dist" width="1140" height="320"></canvas>
+      <div class="legend" id="legend"></div>
+    </div>
+
+    <div class="card">
+      <h2>Where the variability comes from</h2>
+      <canvas id="budget" width="1140" height="104"></canvas>
+      <p class="note" id="budgetNote"></p>
+    </div>
+
+    <div class="card">
+      <h2>Where these numbers come from</h2>
+      <table class="src">
+        <tr><th style="width:132px">Parameter</th><th style="width:150px">Value used</th><th>Source</th></tr>
+        <tr>
+          <td class="p">Reader variability</td>
+          <td>LoA &minus;9.3% to +9.4%<br>&sigma; &asymp; 4.8%</td>
+          <td>Nodoushani, El-Sady, Park et al. <i>J Nucl Cardiol</i> 2021;28(5):2004&ndash;2010. 37 AL amyloidosis patients from the MICA study, <sup>18</sup>F-florbetapir, 60-min dynamic scan, retention index read by two independent observers &ge;24 h apart. Interobserver r = 0.98; intraobserver R = 0.99, LoA &minus;10.8% to +10.7%.</td>
+        </tr>
+        <tr>
+          <td class="p">Typical RI values<br>&amp; biological spread</td>
+          <td>AL 0.043, ATTR 0.035,<br>control 0.010 min<sup>&minus;1</sup></td>
+          <td>Law et al. <i>J Nucl Med</i> 2016;57:1733. <sup>18</sup>F-florbetaben pilot, n=14. Medians and ranges: AL 0.043 (0.032&ndash;0.065), ATTR 0.035 (0.022&ndash;0.042), controls 0.010 (0.008&ndash;0.015). Spreads here are <b>derived from those ranges</b> &mdash; 4&ndash;5 subjects per group, so indicative only.</td>
+        </tr>
+        <tr>
+          <td class="p">Diagnostic threshold</td>
+          <td>RI &gt; 0.020 min<sup>&minus;1</sup></td>
+          <td>Law et al. 2016 &mdash; separated every amyloid patient from every control in a 14-subject cohort. A threshold set on 14 people.</td>
+        </tr>
+        <tr class="flagrow">
+          <td class="p">Scan&ndash;rescan<br>(test&ndash;retest)</td>
+          <td>No published value</td>
+          <td><b>This number does not exist for cardiac amyloidosis PET.</b> The florbetapir study above re-reads the same scan; it does not re-scan the patient. A test&ndash;retest study is recruiting now: CATI / NCT06790394, &ldquo;A test-retest study to evaluate the reproducibility of [<sup>18</sup>F]Florbetaben PET imaging in patients with cardiac amyloidosis and control patients&rdquo; &mdash; Life Molecular Imaging, up to 15 participants (5 AL, 5 ATTR, 5 controls) across two UK hospitals. Until it reports, this slider is a guess.</td>
+        </tr>
+        <tr>
+          <td class="p">Site &amp; reconstruction<br><span style="font-weight:400;color:var(--soft)">imported</span></td>
+          <td>&sigma; &asymp; 4.5% harmonized<br>&sigma; &asymp; 21% not</td>
+          <td>Aide et al. <i>Eur J Nucl Med Mol Imaging</i> 2017, EANM/EARL harmonization review, citing Lasnon 2013 (52 NSCLC patients, 195 lesions) and Quak 2015 (517 patients, 1,380 lesions): PSF vs OSEM SUV<sub>max</sub> ratio 1.48 (95% CI 1.06&ndash;1.91) unharmonized, 1.03 (0.94&ndash;1.12) after EARL-compliant reconstruction. Kuhnert 2015: PSF+TOF raised SUV<sub>max</sub> ~60% even after liver normalization. Beyer 2011: 52% of sites ran adapted reconstruction parameters. <b>Imported from oncology FDG</b> &mdash; no cardiac-amyloid multicentre equivalent found.</td>
+        </tr>
+      </table>
+      <p class="note"><b>Model.</b> Observed = True &times; (1 + b<sub>site</sub> + d<sub>rescan</sub> + e<sub>reader</sub>), components independent and Gaussian. b<sub>site</sub> is drawn once per site and held across a patient's visits, so it largely cancels in a within-patient change but lands in full against a fixed threshold. e<sub>reader</sub> is drawn at every read, so it enters twice in any change measure. Sample size from n = 2(z<sub>1&minus;&alpha;/2</sub>+z<sub>1&minus;&beta;</sub>)<sup>2</sup>&sigma;<sup>2</sup>/&Delta;<sup>2</sup>. Distributions are Monte Carlo over 20,000 simulated patients per group.</p>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+"use strict";
+function $(id){return document.getElementById(id);}
+
+var P = {
+  mode:"change",
+  // shared measurement error
+  reader:4.8, rescan:5, site:4.5,
+  // within-patient change mode
+  effect:15, bio:27, thresh:20, n:60,
+  // diagnostic threshold mode
+  trueRI:35, bioAbs:22, cut:20, ctrlRI:10
+};
+
+var CTRLS = [
+  {k:"effect", nm:"True treatment effect", min:5, max:40, step:1, suf:"% reduction", modes:["change"],
+   cite:"The reduction in retention index you are trying to detect."},
+  {k:"bio", nm:"Between-patient response spread", min:5, max:50, step:1, suf:"% SD", modes:["change"],
+   cite:"How variably patients respond. Derived from Law 2016 ranges."},
+  {k:"thresh", nm:"Responder definition", min:5, max:40, step:1, suf:"% decrease", modes:["change"],
+   cite:"The decision rule written into the protocol."},
+  {k:"n", nm:"Patients per arm planned", min:10, max:400, step:5, suf:"patients", modes:["change"],
+   cite:"Compare with the required N above."},
+
+  {k:"trueRI", nm:"True RI of the patients being classified", min:14, max:50, step:1, suf:"×0.001 min⁻¹", modes:["absolute"],
+   cite:"ATTR median 35, AL median 43, controls 10 (Law 2016). Slide toward 22 for early disease — near the threshold."},
+  {k:"bioAbs", nm:"Between-patient biological spread", min:5, max:40, step:1, suf:"% SD", modes:["absolute"],
+   cite:"Derived from the reported ranges in Law 2016."},
+  {k:"cut", nm:"Diagnostic cut-off", min:12, max:32, step:1, suf:"×0.001 min⁻¹", modes:["absolute"],
+   cite:"Published threshold is 20 (RI > 0.020 min⁻¹), set on 14 subjects."},
+
+  {k:"reader", nm:"Reader variability", min:0, max:20, step:0.1, suf:"% SD", modes:["change","absolute"], sec:"Measurement error",
+   cite:"Published: 4.8%, from ±9.4% limits of agreement (Nodoushani 2021, n=37)."},
+  {k:"rescan", nm:"Scan–rescan variability", min:0, max:25, step:0.5, suf:"% SD", modes:["change","absolute"], unk:true,
+   cite:"NO PUBLISHED VALUE for cardiac amyloidosis. CATI / NCT06790394 is recruiting to measure it."},
+  {k:"site", nm:"Site & reconstruction spread", min:0, max:30, step:0.5, suf:"% SD", modes:["change","absolute"],
+   cite:"4.5% EARL-harmonized, ~21% unharmonized. Imported from oncology FDG (Aide 2017)."}
+];
+
+var PRESETS = [
+  {id:"a", nm:"1. Published values", sub:"within-patient change",
+   d:"Reader error as measured, sites harmonized, an optimistic scan–rescan guess.",
+   v:{mode:"change", reader:4.8, rescan:5, site:4.5, effect:15, bio:27, thresh:20, n:60}},
+  {id:"b", nm:"2. The number nobody has measured", sub:"within-patient change",
+   d:"Scan–rescan pushed to the pessimistic end of plausible. Nothing else moves.",
+   v:{mode:"change", reader:4.8, rescan:20, site:4.5, effect:15, bio:27, thresh:20, n:60}},
+  {id:"c", nm:"3. Early disease, diagnostic threshold", sub:"sites harmonized",
+   d:"Classify patients whose true RI sits just above the cut-off. Same measurement error.",
+   v:{mode:"absolute", reader:4.8, rescan:5, site:4.5, trueRI:23, bioAbs:22, cut:20, ctrlRI:10}},
+  {id:"d", nm:"4. The same patients, sites unharmonized", sub:"reconstruction left to each site",
+   d:"Beyer found half of sites running their own reconstruction parameters.",
+   v:{mode:"absolute", reader:4.8, rescan:5, site:21, trueRI:23, bioAbs:22, cut:20, ctrlRI:10}}
+];
+
+var MODE_NOTE = {
+  change:"Each patient is their own control, scanned on the same scanner twice. Site calibration largely cancels — but reader error enters at both visits and scan–rescan variability does not cancel at all.",
+  absolute:"Every scan is judged against a fixed cut-off. Nothing cancels: site calibration lands directly on the classification."
+};
+
+var activePreset = "a";
+
+/* ---------- maths ---------- */
+var Z = {p80:0.8416212, p90:1.2815516, a05:1.959964};
+function gauss(){
+  var u=0,v=0;
+  while(u===0) u=Math.random();
+  while(v===0) v=Math.random();
+  return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);
+}
+function erf(x){
+  var s = x<0?-1:1; x=Math.abs(x);
+  var t = 1/(1+0.3275911*x);
+  var y = 1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-0.284496736)*t+0.254829592)*t*Math.exp(-x*x);
+  return s*y;
+}
+function phi(z){ return 0.5*(1+erf(z/Math.SQRT2)); }
+
+function variance(){
+  var rd=P.reader, rs=P.rescan, st=P.site;
+  if (P.mode==="change") return {bio:P.bio*P.bio, reader:2*rd*rd, rescan:rs*rs, site:0};
+  return {bio:P.bioAbs*P.bioAbs, reader:rd*rd, rescan:rs*rs, site:st*st};
+}
+function sigmaTotal(){
+  var V=variance(); return Math.sqrt(V.bio+V.reader+V.rescan+V.site);
+}
+function requiredN(power){
+  var s=sigmaTotal(), zb=(power===90?Z.p90:Z.p80);
+  if (P.effect<=0) return Infinity;
+  return Math.ceil(2*Math.pow(Z.a05+zb,2)*s*s/(P.effect*P.effect));
+}
+
+/* ---------- UI build ---------- */
+function visible(c){ return c.modes.indexOf(P.mode)>=0; }
+
+function buildControls(){
+  var h="", lastSec=null;
+  CTRLS.forEach(function(c){
+    if (!visible(c)) return;
+    if (c.sec && c.sec!==lastSec){ h += '<div class="sechead">'+c.sec+'</div>'; lastSec=c.sec; }
+    h += '<div class="ctl">'
+      + '<label><span class="nm">'+c.nm+'</span><span class="vl" id="v_'+c.k+'"></span></label>'
+      + '<input type="range" id="r_'+c.k+'" min="'+c.min+'" max="'+c.max+'" step="'+c.step+'" value="'+P[c.k]+'">'
+      + '<div class="cite'+(c.unk?' unk':'')+'">'+c.cite+'</div></div>';
+  });
+  $("controls").innerHTML=h;
+  CTRLS.forEach(function(c){
+    if (!visible(c)) return;
+    var r=$("r_"+c.k);
+    r.addEventListener("input", function(){
+      P[c.k]=parseFloat(r.value); activePreset=null; paintPresets(); render();
+    });
+  });
+}
+
+function paintPresets(){
+  var h="";
+  PRESETS.forEach(function(p){
+    h += '<button class="preset'+(activePreset===p.id?' on':'')+'" data-p="'+p.id+'">'
+      +  '<b>'+p.nm+' <i>&middot; '+p.sub+'</i></b><span>'+p.d+'</span></button>';
+  });
+  $("presets").innerHTML=h;
+  Array.prototype.forEach.call($("presets").querySelectorAll("button"), function(b){
+    b.addEventListener("click", function(){
+      var p=PRESETS.filter(function(x){return x.id===b.getAttribute("data-p");})[0];
+      for (var k in p.v) P[k]=p.v[k];
+      activePreset=p.id;
+      setModeButtons(); buildControls(); paintPresets(); render();
+    });
+  });
+}
+function setModeButtons(){
+  Array.prototype.forEach.call(document.querySelectorAll("#modes button"), function(x){
+    x.className = (x.getAttribute("data-mode")===P.mode ? "on" : "");
+  });
+}
+Array.prototype.forEach.call(document.querySelectorAll("#modes button"), function(b){
+  b.addEventListener("click", function(){
+    P.mode=b.getAttribute("data-mode");
+    activePreset=null; setModeButtons(); buildControls(); paintPresets(); render();
+  });
+});
+
+/* ---------- drawing ---------- */
+function clear(cv){ var g=cv.getContext("2d"); g.setTransform(1,0,0,1,0,0); g.clearRect(0,0,cv.width,cv.height); return g; }
+function hist(a,lo,hi,bins){
+  var h=new Array(bins).fill(0), w=(hi-lo)/bins;
+  for (var i=0;i<a.length;i++){ var b=Math.floor((a[i]-lo)/w); if(b>=0&&b<bins) h[b]++; }
+  // light 5-point smoothing so the shape reads cleanly on a projector
+  var s=new Array(bins).fill(0);
+  for (var j=0;j<bins;j++){
+    var t=0,n=0;
+    for (var d=-2;d<=2;d++){ var q=j+d; if(q>=0&&q<bins){ var wt=3-Math.abs(d); t+=h[q]*wt; n+=wt; } }
+    s[j]=t/n;
+  }
+  return s;
+}
+var FONT = "-apple-system,Segoe UI,Helvetica,Arial,sans-serif";
+
+function drawAxes(g,L,T,pw,ph,H,lo,hi,step,fmt,xlabel){
+  g.strokeStyle="#E8E6E0"; g.lineWidth=1;
+  g.fillStyle="#6E7A8A"; g.font="12.5px "+FONT; g.textAlign="center";
+  var start=Math.ceil(lo/step)*step;
+  for (var v=start; v<=hi+1e-9; v+=step){
+    var x=L+(v-lo)/(hi-lo)*pw;
+    g.beginPath(); g.moveTo(x,T); g.lineTo(x,T+ph); g.stroke();
+    g.fillText(fmt(v), x, H-21);
+  }
+  g.strokeStyle="#B8BCC4"; g.beginPath(); g.moveTo(L,T+ph); g.lineTo(L+pw,T+ph); g.stroke();
+  g.textAlign="left"; g.fillText(xlabel, L, H-4);
+}
+function series(g,hh,lo,hi,bins,L,T,pw,ph,mx,fill){
+  var y=function(c){ return T+ph-(c/mx)*ph; };
+  g.beginPath(); g.moveTo(L,y(0));
+  for (var i=0;i<bins;i++){ g.lineTo(L+((i+0.5)/bins)*pw, y(hh[i])); }
+  g.lineTo(L+pw,y(0)); g.closePath(); g.fillStyle=fill; g.fill();
+}
+function vline(g,xv,L,T,pw,ph,lo,hi,color,dash){
+  var x=L+(xv-lo)/(hi-lo)*pw;
+  g.strokeStyle=color; g.lineWidth=2.4;
+  if(dash) g.setLineDash(dash);
+  g.beginPath(); g.moveTo(x,T); g.lineTo(x,T+ph); g.stroke(); g.setLineDash([]);
+}
+
+function renderChange(){
+  var V=variance(), sd=sigmaTotal();
+  var sdP=Math.sqrt(V.reader+V.rescan+V.site+0.3*V.bio);
+  var M=20000, tx=new Float64Array(M), pl=new Float64Array(M);
+  for (var i=0;i<M;i++){ tx[i]=-P.effect+gauss()*sd; pl[i]=gauss()*sdP; }
+
+  var cv=$("dist"), g=clear(cv), W=cv.width,H=cv.height,L=20,R=20,T=14,B=40;
+  var pw=W-L-R, ph=H-T-B;
+  var lo=-Math.max(80,P.effect*3.2), hi=Math.max(55,P.effect*2);
+  var bins=64, ht=hist(tx,lo,hi,bins), hp=hist(pl,lo,hi,bins), mx=1;
+  for (var k=0;k<bins;k++) mx=Math.max(mx,ht[k],hp[k]);
+  drawAxes(g,L,T,pw,ph,H,lo,hi,20,function(v){return (v>0?"+":"")+v+"%";},
+    "measured change in retention index from baseline");
+  series(g,hp,lo,hi,bins,L,T,pw,ph,mx,"rgba(136,148,166,0.55)");
+  series(g,ht,lo,hi,bins,L,T,pw,ph,mx,"rgba(46,125,91,0.62)");
+  vline(g,-P.effect,L,T,pw,ph,lo,hi,"#D52B1E");
+  vline(g,-P.thresh,L,T,pw,ph,lo,hi,"#1A2332",[6,5]);
+
+  var thr=-P.thresh, hit=0, fp=0;
+  for (var a=0;a<M;a++) if (tx[a]<=thr) hit++;
+  for (var b=0;b<M;b++) if (pl[b]<=thr) fp++;
+
+  var n80=requiredN(80), n90=requiredN(90);
+  $("stats").innerHTML =
+    '<div class="stat hero"><div class="k">Patients per arm needed</div><div class="v">'+n80+'</div>'
+    + '<div class="n">80% power, &alpha;=0.05 &middot; '+n90+' for 90% power'
+    + (P.n<n80 ? ' &middot; <b style="color:#F6A9A2">you planned '+P.n+'</b>' : ' &middot; you planned '+P.n)
+    + '</div></div>'
+    + '<div class="stat"><div class="k">Responders detected</div><div class="v">'+Math.round(hit/M*100)+'%</div>'
+    + '<div class="n">true responders meeting the &ge;'+P.thresh+'% rule</div></div>'
+    + '<div class="stat"><div class="k">False responders</div><div class="v">'+Math.round(fp/M*100)+'%</div>'
+    + '<div class="n">placebo patients called responders</div></div>';
+  $("distTitle").textContent="Measured within-patient change — treatment vs placebo";
+  $("legend").innerHTML='<span><i style="background:#2E7D5B"></i>Treatment</span>'
+    +'<span><i style="background:#8894A6"></i>Placebo</span>'
+    +'<span><i style="background:#D52B1E"></i>True effect</span>'
+    +'<span><i style="background:#1A2332"></i>Responder threshold</span>';
+}
+
+function renderAbsolute(){
+  var errSD=Math.sqrt(P.reader*P.reader+P.rescan*P.rescan+P.site*P.site)/100;
+  var tRI=P.trueRI, cRI=P.ctrlRI, cut=P.cut;
+  var bioSD=P.bioAbs/100;
+  var M=20000, dz=new Float64Array(M), ct=new Float64Array(M);
+  for (var i=0;i<M;i++){
+    var t1=tRI*(1+gauss()*bioSD); dz[i]=t1*(1+gauss()*errSD);
+    var t2=cRI*(1+gauss()*bioSD); ct[i]=t2*(1+gauss()*errSD);
+  }
+  var cv=$("dist"), g=clear(cv), W=cv.width,H=cv.height,L=20,R=20,T=14,B=40;
+  var pw=W-L-R, ph=H-T-B;
+  var lo=0, hi=Math.max(60, tRI*2.1);
+  var bins=70, hd=hist(dz,lo,hi,bins), hc=hist(ct,lo,hi,bins), mx=1;
+  for (var k=0;k<bins;k++) mx=Math.max(mx,hd[k],hc[k]);
+  drawAxes(g,L,T,pw,ph,H,lo,hi,10,function(v){return (v/1000).toFixed(3);},
+    "measured retention index (min⁻¹)");
+  series(g,hc,lo,hi,bins,L,T,pw,ph,mx,"rgba(136,148,166,0.55)");
+  series(g,hd,lo,hi,bins,L,T,pw,ph,mx,"rgba(46,125,91,0.62)");
+  vline(g,tRI,L,T,pw,ph,lo,hi,"#D52B1E");
+  vline(g,cut,L,T,pw,ph,lo,hi,"#1A2332",[6,5]);
+
+  var fn=0, fp=0;
+  for (var a=0;a<M;a++) if (dz[a]<cut) fn++;
+  for (var b=0;b<M;b++) if (ct[b]>=cut) fp++;
+  var sens=1-fn/M, spec=1-fp/M;
+  var mis=(fn+fp)/(2*M);
+
+  $("stats").innerHTML =
+    '<div class="stat hero"><div class="k">Misclassified</div><div class="v">'+(mis*100).toFixed(1)+'%</div>'
+    + '<div class="n">patients on the wrong side of the cut-off</div></div>'
+    + '<div class="stat"><div class="k">Sensitivity</div><div class="v">'+(sens*100).toFixed(1)+'%</div>'
+    + '<div class="n">true RI '+(tRI/1000).toFixed(3)+' correctly called positive</div></div>'
+    + '<div class="stat"><div class="k">Specificity</div><div class="v">'+(spec*100).toFixed(1)+'%</div>'
+    + '<div class="n">controls at '+(cRI/1000).toFixed(3)+' correctly called negative</div></div>';
+  $("distTitle").textContent="Measured retention index against the diagnostic cut-off";
+  $("legend").innerHTML='<span><i style="background:#2E7D5B"></i>Patients (true RI '+(tRI/1000).toFixed(3)+')</span>'
+    +'<span><i style="background:#8894A6"></i>Controls (true RI '+(cRI/1000).toFixed(3)+')</span>'
+    +'<span><i style="background:#D52B1E"></i>True patient RI</span>'
+    +'<span><i style="background:#1A2332"></i>Cut-off</span>';
+}
+
+function drawBudget(){
+  var V=variance(), tot=V.bio+V.reader+V.rescan+V.site;
+  var cv=$("budget"), g=clear(cv), W=cv.width, L=8, bw=W-16, yT=12, bh=38;
+  if (tot<=0) return;
+  var parts=[{nm:"Biology",v:V.bio,c:"#5BA3C4"},{nm:"Reader",v:V.reader,c:"#D52B1E"},
+             {nm:"Scan–rescan",v:V.rescan,c:"#E8A33D"},{nm:"Site & reconstruction",v:V.site,c:"#22304A"}];
+  var xx=L;
+  parts.forEach(function(p){
+    var w=p.v/tot*bw; if (w<=0.5) return;
+    g.fillStyle=p.c; g.fillRect(xx,yT,w,bh);
+    if (w>70){
+      g.fillStyle="#fff"; g.textAlign="center"; g.font="bold 13px "+FONT;
+      g.fillText(Math.round(p.v/tot*100)+"%", xx+w/2, yT+bh/2+5);
+      g.fillStyle="#49566B"; g.textAlign="left"; g.font="12.5px "+FONT;
+      g.fillText(p.nm, xx+1, yT+bh+16);
+    }
+    xx+=w;
+  });
+  g.strokeStyle="#DCDDD8"; g.lineWidth=1; g.strokeRect(L,yT,bw,bh);
+
+  var meas=V.reader+V.rescan+V.site;
+  $("budgetNote").innerHTML="<b>"+Math.round(meas/tot*100)+"% of what you measure is not biology.</b> "
+    + (P.mode==="change"
+      ? "Site calibration contributes nothing in this construction, because every patient is their own control on the same scanner. That is the single strongest argument for a longitudinal endpoint."
+      : "Site calibration lands in full, because every scan is judged against the same fixed number. This is where harmonization stops being housekeeping.");
+}
+
+function render(){
+  CTRLS.forEach(function(c){
+    if (!visible(c)) return;
+    var v=P[c.k], t=(c.step<1 ? v.toFixed(1) : v);
+    $("v_"+c.k).textContent = t+" "+c.suf;
+  });
+  $("modeNote").textContent = MODE_NOTE[P.mode];
+  if (P.mode==="change") renderChange(); else renderAbsolute();
+  drawBudget();
+}
+
+setModeButtons(); buildControls(); paintPresets(); render();
+</script>
+</body>
+</html>
